@@ -1,100 +1,250 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>太閤立志伝 算術ゲーム 簡単攻略くん</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --ink: #20160f;
-      --muted: #6b5f50;
-      --paper: #f3e6c4;
-      --paper-dark: #d7c595;
-      --wood: #9b5828;
-      --wood-light: #d58d49;
-      --accent: #2f7b72;
-      --accent-light: #dff4ee;
-      --danger: #b7432f;
-      --ok: #276f45;
-      --shadow: rgba(31, 20, 11, .25);
+        padding-top: 16px;
+      }
+
+      .panel {
+        grid-template-columns: 1fr;
+      }
+
+      .formula {
+        justify-content: center;
+      }
+
+      .key {
+        min-height: 62px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>太閤立志伝 算術ゲーム 簡単攻略くん</h1>
+    <section class="app" aria-label="計算札パズル">
+      <div class="board">
+        <div class="formula-actions">
+          <button id="clearFormulaBtn" class="clear-formula" type="button">解をすべて削除</button>
+        </div>
+        <div class="formula-wrap">
+          <div id="formula" class="formula" aria-label="計算式"></div>
+        </div>
+
+        <div class="pad" aria-label="符号ボタン">
+          <button class="key" data-key="+">+</button>
+          <button class="key" data-key="-">-</button>
+          <button class="key" data-key="*">×</button>
+          <button class="key" data-key="/">÷</button>
+        </div>
+
+        <div class="pad number-pad" aria-label="答え入力ボタン">
+          <button class="key" data-key="7">7</button>
+          <button class="key" data-key="8">8</button>
+          <button class="key" data-key="9">9</button>
+          <button class="key" data-key="4">4</button>
+          <button class="key" data-key="5">5</button>
+          <button class="key" data-key="6">6</button>
+          <button class="key" data-key="1">1</button>
+          <button class="key" data-key="2">2</button>
+          <button class="key" data-key="3">3</button>
+          <button class="key wide" data-key="0">0</button>
+        </div>
+
+        <div id="status" class="status">問題に表示されている符号と答えを設定し、左辺の数字欄に入る数字を探します。</div>
+      </div>
+
+      <aside class="panel">
+        <div class="box">
+          <h2>問題の形</h2>
+          <div class="row">
+            <label>空欄の数</label>
+            <div class="count-options" aria-label="空欄の数">
+              <button class="count-choice" type="button" data-count="2">2マス</button>
+              <button class="count-choice" type="button" data-count="3">3マス</button>
+              <button class="count-choice active" type="button" data-count="4">4マス</button>
+            </div>
+          </div>
+          <div class="row">
+            <label for="targetInput">答え</label>
+            <input id="targetInput" class="small-input" inputmode="numeric" value="9">
+          </div>
+        </div>
+
+        <div class="box">
+          <h2>使い方</h2>
+          <p class="guide-text">太閤立志伝の算術ミニゲームの際に使用できるツールです。ゲーム画面上に表示されている計算記号と式の解を入力すると成り立つ数式が自動入力されます。</p>
+          <p class="guide-text">一応手入力も対応していますが、パネルを操作をしてもらったほうが使いやすいかもしれません。</p>
+        </div>
+
+        <div class="box">
+          <h2>ほかの解</h2>
+          <div id="solutions" class="solutions"></div>
+        </div>
+
+        <div class="box">
+          <h2>このサイトについて</h2>
+          <dl class="info-list">
+            <div>
+              <dt>目的</dt>
+              <dd>太閤立志伝の算術ミニゲームで、表示された計算記号と答えから、空欄に入る数字の組み合わせを探すための補助ツールです。</dd>
+            </div>
+            <div>
+              <dt>非公式表記</dt>
+              <dd>このページは個人が作成した非公式ツールです。ゲーム会社、権利者、関連企業とは関係ありません。</dd>
+            </div>
+            <div>
+              <dt>プライバシー</dt>
+              <dd>このページ自体は入力内容を外部へ送信せず、サーバーにも保存しません。将来広告を掲載する場合、広告配信事業者がCookie等を利用することがあります。</dd>
+            </div>
+            <div>
+              <dt>お問い合わせ</dt>
+              <dd>作成者への連絡は takasi.takesi.web★gmail.com までお願いします。送信時は「★」を「@」に置き換えてください。</dd>
+            </div>
+          </dl>
+        </div>
+      </aside>
+    </section>
+    <p class="site-note">このサイトは非公式の攻略補助ツールです。表示される解は計算上成立する候補であり、ゲーム内の仕様や状況によって最適解を保証するものではありません。</p>
+  </main>
+
+  <script>
+    const state = {
+      numberCount: 4,
+      focused: null,
+      focusedOp: 1,
+      targetFresh: false,
+      tokens: []
+    };
+
+    const formula = document.querySelector("#formula");
+    const statusBox = document.querySelector("#status");
+    const solutionsBox = document.querySelector("#solutions");
+    const targetInput = document.querySelector("#targetInput");
+    const countChoices = document.querySelectorAll(".count-choice");
+    const opMap = { "*": "×", "/": "÷", "+": "+", "-": "-" };
+
+    function fitFormula() {
+      const wrap = formula.parentElement;
+      if (!wrap) return;
+      const available = wrap.clientWidth;
+      const itemCount = state.tokens.length + 2;
+      const targetLength = Math.max(targetInput.value.length, 1);
+      const targetWeight = Math.min(2.3, Math.max(1.15, 1 + targetLength * 0.12));
+      const slotCount = state.tokens.length + targetWeight;
+      const densityPadding = state.numberCount >= 4 ? 72 : 28;
+      const desiredGap = state.numberCount >= 4 ? 10 : 12;
+      const gap = Math.max(3, Math.min(desiredGap, Math.floor(available / 70)));
+      const equalsWidth = Math.max(14, Math.min(30, Math.floor(available * 0.045)));
+      const border = available < 420 ? 2 : 4;
+      const usable = available - densityPadding - gap * (itemCount - 1) - equalsWidth;
+      const slotSize = Math.max(20, Math.min(92, Math.floor(usable / slotCount)));
+      const slotFont = Math.max(15, Math.floor(slotSize * 0.62));
+      const targetSize = Math.max(slotSize, Math.floor(slotSize * targetWeight));
+
+      formula.style.setProperty("--formula-gap", `${gap}px`);
+      formula.style.setProperty("--slot-size", `${slotSize}px`);
+      formula.style.setProperty("--target-size", `${targetSize}px`);
+      formula.style.setProperty("--slot-font", `${slotFont}px`);
+      formula.style.setProperty("--equals-width", `${equalsWidth}px`);
+      formula.style.setProperty("--equals-font", `${Math.max(18, Math.floor(slotSize * 0.72))}px`);
+      formula.style.setProperty("--slot-border", `${border}px`);
+      formula.style.setProperty("--slot-padding", `${slotSize < 32 ? 1 : 4}px`);
+
+      const target = formula.querySelector(".target");
+      if (target) {
+        const adjusted = targetLength > 3
+          ? Math.max(12, Math.min(slotFont, Math.floor((targetSize - 8) / targetLength * 1.45)))
+          : slotFont;
+        target.style.fontSize = `${adjusted}px`;
+      }
     }
 
-    * {
-      box-sizing: border-box;
+    function defaultTokens(count) {
+      const ops = ["+", "*", "-"];
+      const tokens = [];
+      for (let i = 0; i < count; i += 1) {
+        tokens.push({ type: "num", value: "" });
+        if (i < count - 1) {
+          tokens.push({ type: "op", value: ops[i] || "+" });
+        }
+      }
+      return tokens;
     }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif;
-      color: var(--ink);
-      background:
-        linear-gradient(90deg, rgba(74, 42, 20, .08) 1px, transparent 1px),
-        linear-gradient(rgba(74, 42, 20, .08) 1px, transparent 1px),
-        linear-gradient(135deg, #caa062, #f2dfad 35%, #b78448 100%);
-      background-size: 28px 28px, 28px 28px, auto;
+    function normalizeOperator(value) {
+      if (value === "x" || value === "X" || value === "×") return "*";
+      if (value === "÷") return "/";
+      return value;
     }
 
-    main {
-      width: min(1120px, calc(100% - 28px));
-      margin: 0 auto;
-      padding: 28px 0 40px;
+    function normalizeAnswer(value) {
+      return value.replace(/[^\d-]/g, "").replace(/(?!^)-/g, "");
     }
 
-    h1 {
-      margin: 0 0 18px;
-      font-size: clamp(28px, 5vw, 48px);
-      line-height: 1.05;
-      letter-spacing: 0;
+    function render() {
+      formula.innerHTML = "";
+      state.tokens.forEach((token, index) => {
+        if (token.type === "op") {
+          const opButton = document.createElement("button");
+          opButton.className = "slot operator";
+          opButton.type = "button";
+          opButton.textContent = opMap[token.value] || token.value;
+          opButton.setAttribute("aria-label", "問題の符号");
+          opButton.dataset.index = String(index);
+          opButton.addEventListener("focus", () => state.focusedOp = index);
+          opButton.addEventListener("click", () => cycleOperator(index));
+          formula.appendChild(opButton);
+          return;
+        }
+
+        const input = document.createElement("input");
+        input.className = "slot";
+        input.maxLength = token.type === "num" ? 2 : 1;
+        input.inputMode = "numeric";
+        input.value = token.value;
+        input.setAttribute("aria-label", "数字欄");
+        input.readOnly = true;
+        input.tabIndex = -1;
+        input.dataset.index = String(index);
+        formula.appendChild(input);
+
+        if (index === state.tokens.length - 1) {
+          const eq = document.createElement("span");
+          eq.className = "op";
+          eq.textContent = "=";
+          formula.appendChild(eq);
+
+          const target = document.createElement("input");
+          target.className = "slot target";
+          target.inputMode = "numeric";
+          target.value = targetInput.value;
+          target.setAttribute("aria-label", "答え");
+          target.dataset.target = "answer";
+          target.addEventListener("focus", () => state.focused = "target");
+          target.addEventListener("keydown", event => {
+            if (["+", "*", "/", "x", "X", "×", "÷"].includes(event.key)) event.preventDefault();
+            if (event.key === "-" && (target.selectionStart !== 0 || target.value.includes("-"))) event.preventDefault();
+          });
+          target.addEventListener("input", event => {
+            const normalized = normalizeAnswer(event.target.value);
+            event.target.value = normalized;
+            targetInput.value = normalized;
+            fitFormula();
+            autoSolveNumbers(true);
+          });
+          formula.appendChild(target);
+        }
+      });
+      fitFormula();
     }
 
-    button, input, select {
-      font: inherit;
+    function handleManualInput(index, raw) {
+      const token = state.tokens[index];
+      const value = raw.trim().replace(/[^\d-]/g, "").slice(0, 2);
+      token.value = value;
+      render();
+      focusByIndex(index);
+      if (value) focusRelative(index, 1);
     }
 
-    .app {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 330px;
-      gap: 18px;
-      align-items: start;
-    }
-
-    .board {
-      border: 7px solid #7f502a;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0) 24%),
-        repeating-linear-gradient(90deg, rgba(92, 61, 28, .1) 0 1px, transparent 1px 20px),
-        var(--paper);
-      box-shadow: 0 16px 24px var(--shadow), inset 0 0 0 3px rgba(255, 245, 204, .55);
-      padding: clamp(14px, 3vw, 26px);
-    }
-
-    .formula-wrap {
-      background: linear-gradient(180deg, #eef2f2, #b9bec2);
-      border: 3px solid #27313b;
-      box-shadow: inset 0 0 18px rgba(25, 30, 42, .35);
-      padding: clamp(12px, 2.5vw, 22px);
-      overflow: hidden;
-    }
-
-    .formula {
-      display: flex;
-      flex-wrap: nowrap;
-      align-items: center;
-      justify-content: center;
-      gap: var(--formula-gap, clamp(6px, 1.3vw, 14px));
-      max-width: 100%;
-      min-width: 0;
-    }
-
-    .slot {
-      width: var(--slot-size, 72px);
-      height: var(--slot-size, 72px);
-      border: var(--slot-border, 4px) solid #5d4327;
-      background: #c9c0a8;
-      color: #090807;
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .25);
-      text-align: center;
-      font-size: var(--slot-font, 46px);
-      font-weight: 800;
+    function getOperatorIndexes() {
+      return state.tokens
+        .map((token, i) => token.type === "op" ? i : null)
+        .filter(index => index !== null);
