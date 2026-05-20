@@ -1,3 +1,403 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>太閤立志伝 算術ゲーム 簡単攻略くん</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20160f;
+      --muted: #6b5f50;
+      --paper: #f3e6c4;
+      --paper-dark: #d7c595;
+      --wood: #9b5828;
+      --wood-light: #d58d49;
+      --accent: #2f7b72;
+      --accent-light: #dff4ee;
+      --danger: #b7432f;
+      --ok: #276f45;
+      --shadow: rgba(31, 20, 11, .25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(74, 42, 20, .08) 1px, transparent 1px),
+        linear-gradient(rgba(74, 42, 20, .08) 1px, transparent 1px),
+        linear-gradient(135deg, #caa062, #f2dfad 35%, #b78448 100%);
+      background-size: 28px 28px, 28px 28px, auto;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .board {
+      border: 7px solid #7f502a;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0) 24%),
+        repeating-linear-gradient(90deg, rgba(92, 61, 28, .1) 0 1px, transparent 1px 20px),
+        var(--paper);
+      box-shadow: 0 16px 24px var(--shadow), inset 0 0 0 3px rgba(255, 245, 204, .55);
+      padding: clamp(14px, 3vw, 26px);
+    }
+
+    .formula-wrap {
+      background: linear-gradient(180deg, #eef2f2, #b9bec2);
+      border: 3px solid #27313b;
+      box-shadow: inset 0 0 18px rgba(25, 30, 42, .35);
+      padding: clamp(12px, 2.5vw, 22px);
+      overflow: hidden;
+    }
+
+    .formula {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: center;
+      gap: var(--formula-gap, clamp(6px, 1.3vw, 14px));
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .slot {
+      width: var(--slot-size, 72px);
+      height: var(--slot-size, 72px);
+      border: var(--slot-border, 4px) solid #5d4327;
+      background: #c9c0a8;
+      color: #090807;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .25);
+      text-align: center;
+      font-size: var(--slot-font, 46px);
+      font-weight: 800;
+      line-height: 1;
+      padding: 0 var(--slot-padding, 4px);
+      border-radius: 3px;
+      caret-color: var(--accent);
+      flex: 0 0 auto;
+      min-width: 0;
+    }
+
+    .slot:focus {
+      outline: 5px solid #ff4d35;
+      border-color: #b51f16;
+      background: #fff2c9;
+      box-shadow: 0 0 0 5px rgba(255, 77, 53, .22), inset 0 0 0 2px rgba(255, 255, 255, .35);
+    }
+
+    .slot.operator {
+      background: #d7e9e3;
+      border-color: #346b62;
+      cursor: pointer;
+    }
+
+    .slot.operator:focus {
+      background: #e9fbf4;
+      border-color: #b51f16;
+    }
+
+    button.slot {
+      font-family: inherit;
+    }
+
+    .op {
+      min-width: var(--equals-width, 26px);
+      text-align: center;
+      font-size: var(--equals-font, 46px);
+      font-weight: 900;
+      line-height: 1;
+      flex: 0 0 auto;
+    }
+
+    .target {
+      width: var(--target-size, 84px);
+    }
+
+    .formula-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+
+    .clear-formula {
+      min-height: 38px;
+      border: 2px solid #7f502a;
+      border-radius: 6px;
+      background: #fff8e5;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 800;
+      padding: 6px 12px;
+    }
+
+    .clear-formula:focus {
+      outline: 4px solid #ff4d35;
+    }
+
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .key {
+      min-height: 72px;
+      border: 3px solid #3f2916;
+      border-radius: 4px;
+      background:
+        linear-gradient(#f5d093, #bb6c32 16%, #d98e49 17%, #ad612d);
+      box-shadow: 6px 8px 0 rgba(37, 26, 17, .45);
+      color: #080706;
+      font-size: clamp(30px, 7vw, 52px);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .number-pad {
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 14px;
+    }
+
+    .key.wide {
+      grid-column: 2;
+    }
+
+    .key:active {
+      transform: translate(3px, 4px);
+      box-shadow: 3px 4px 0 rgba(37, 26, 17, .45);
+    }
+
+    .key.used {
+      opacity: .35;
+      filter: grayscale(.4);
+    }
+
+    .panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .box {
+      border: 2px solid rgba(71, 45, 22, .34);
+      background: rgba(255, 247, 222, .82);
+      padding: 14px;
+      border-radius: 8px;
+      box-shadow: 0 10px 18px rgba(50, 32, 15, .16);
+    }
+
+    .box h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .row {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    .row:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    select, .small-input {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid #9c8a68;
+      border-radius: 6px;
+      background: #fff8e5;
+      padding: 6px 10px;
+      color: var(--ink);
+    }
+
+    .count-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .count-choice {
+      min-height: 46px;
+      border: 1px solid #8e7956;
+      border-radius: 6px;
+      background: #fff8e5;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .count-choice.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .tool {
+      min-height: 40px;
+      border: 1px solid #8e7956;
+      border-radius: 6px;
+      background: #fff8e5;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tool.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .tool {
+      font-size: 22px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .actions .tool {
+      font-size: 15px;
+    }
+
+    .status {
+      margin-top: 14px;
+      min-height: 48px;
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, .58);
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .status.ok {
+      color: var(--ok);
+      background: #e6f5dd;
+    }
+
+    .status.bad {
+      color: var(--danger);
+      background: #ffe7db;
+    }
+
+    .solutions {
+      max-height: 230px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .solution {
+      border: 1px solid #d6c49b;
+      border-radius: 6px;
+      background: #fffaf0;
+      padding: 9px 10px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .guide-text {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .guide-text:last-child {
+      margin-bottom: 0;
+    }
+
+    .info-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .info-list dt {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .info-list dd {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .site-note {
+      margin-top: 18px;
+      color: rgba(32, 22, 15, .72);
+      font-size: 12px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      main {
+        width: min(100% - 18px, 1120px);
         padding-top: 16px;
       }
 
@@ -248,3 +648,376 @@
       return state.tokens
         .map((token, i) => token.type === "op" ? i : null)
         .filter(index => index !== null);
+    }
+
+    function focusOperator(index) {
+      state.focusedOp = index;
+      const button = formula.querySelector(`[data-index="${index}"]`);
+      if (button) button.focus();
+    }
+
+    function focusNextOperator(index) {
+      const operators = getOperatorIndexes();
+      if (operators.length === 0) {
+        focusTarget();
+        return;
+      }
+      const current = operators.indexOf(index);
+      const next = operators[current + 1];
+      if (next !== undefined) {
+        focusOperator(next);
+      } else {
+        focusTarget();
+      }
+    }
+
+    function setOperator(index, value, shouldAdvance = true) {
+      const token = state.tokens[index];
+      const normalized = normalizeOperator(value);
+      if (!token || token.type !== "op" || !["+", "-", "*", "/"].includes(normalized)) return;
+      token.value = normalized;
+      render();
+      autoSolveNumbers(true);
+      if (shouldAdvance) {
+        focusNextOperator(index);
+      } else {
+        focusOperator(index);
+      }
+    }
+
+    function cycleOperator(index) {
+      const order = ["+", "-", "*", "/"];
+      const current = state.tokens[index]?.value || "+";
+      const next = state.tokens[index]?.value ? order[(order.indexOf(current) + 1) % order.length] : "+";
+      setOperator(index, next, false);
+    }
+
+    function focusByIndex(index) {
+      const token = state.tokens[index];
+      if (!token || token.type === "num") {
+        focusOperator(state.focusedOp || getOperatorIndexes()[0] || 1);
+        return;
+      }
+      focusOperator(index);
+    }
+
+    function focusTarget(shouldSelect = true) {
+      const target = formula.querySelector('[data-target="answer"]');
+      if (target) {
+        state.focused = "target";
+        state.targetFresh = true;
+        target.focus();
+        if (shouldSelect) {
+          target.select();
+        } else {
+          const end = target.value.length;
+          target.setSelectionRange(end, end);
+          state.targetFresh = false;
+        }
+      }
+    }
+
+    function focusRelative(index, step) {
+      const editable = state.tokens
+        .map((token, i) => ({ token, i }))
+        .filter(item => item.token.type === "num")
+        .map(item => item.i);
+      const pos = editable.indexOf(index);
+      const next = editable[pos + step];
+      if (next !== undefined) focusByIndex(next);
+      if (next === undefined && step > 0) focusTarget();
+    }
+
+    function setFocusedValue(value) {
+      if (state.focused === null) {
+        state.focused = 0;
+      }
+      if (state.focused === "target") {
+        if (/^\d$/.test(value)) {
+          targetInput.value = state.targetFresh ? value : `${targetInput.value}${value}`;
+          state.targetFresh = false;
+          render();
+          focusTarget();
+          state.targetFresh = false;
+          autoSolveNumbers(true);
+          state.targetFresh = false;
+        }
+        return;
+      }
+      const normalized = normalizeOperator(value);
+      if (["+", "-", "*", "/"].includes(normalized)) {
+        setOperator(state.focusedOp, normalized);
+        return;
+      }
+      const token = state.tokens[state.focused];
+      if (!token) return;
+      if (token.type === "num" && /^\d$/.test(normalized)) {
+        token.value = normalized;
+        render();
+        focusRelative(state.focused, 1);
+      }
+    }
+
+    function getExpression(tokens = state.tokens) {
+      return tokens.map(token => token.value).join(" ");
+    }
+
+    function calculate(tokens = state.tokens) {
+      if (tokens.some(token => token.value === "")) return null;
+      const values = tokens.map(token => token.value);
+      if (values.some((value, i) => i % 2 === 0 && !/^-?\d+$/.test(value))) return null;
+      if (values.some((value, i) => i % 2 === 1 && !["+", "-", "*", "/"].includes(value))) return null;
+
+      const stack = [Number(values[0])];
+      for (let i = 1; i < values.length; i += 2) {
+        const op = values[i];
+        const num = Number(values[i + 1]);
+        if (op === "*") stack[stack.length - 1] *= num;
+        if (op === "/") {
+          if (num === 0) return null;
+          stack[stack.length - 1] /= num;
+        }
+        if (op === "+") stack.push(num);
+        if (op === "-") stack.push(-num);
+      }
+      return stack.reduce((sum, value) => sum + value, 0);
+    }
+
+    function checkAnswer() {
+      const result = calculate();
+      const target = Number(targetInput.value);
+      if (Number.isNaN(target)) {
+        setStatus("答えの欄に数字を入れてください。", "bad");
+        return;
+      }
+      if (result === null) {
+        setStatus("まだ式が完成していません。", "bad");
+        return;
+      }
+      if (Math.abs(result - target) < 0.0000001) {
+        setStatus(`${displayExpression(state.tokens)} = ${target}。成立しています。`, "ok");
+      } else {
+        setStatus(`${displayExpression(state.tokens)} = ${result} なので、答えと違います。`, "bad");
+      }
+    }
+
+    function displayExpression(tokens) {
+      return tokens.map(token => opMap[token.value] || token.value).join(" ");
+    }
+
+    function setStatus(text, kind = "") {
+      statusBox.className = `status ${kind}`.trim();
+      statusBox.textContent = text;
+    }
+
+    function clearAll() {
+      state.tokens.forEach(token => {
+        if (token.type === "num") token.value = "";
+      });
+      solutionsBox.innerHTML = "";
+      render();
+      setStatus("左辺の数字欄を消しました。符号と答えはそのまま残しています。", "");
+      focusOperator(state.focusedOp || getOperatorIndexes()[0] || 1);
+    }
+
+    function clearFormula() {
+      state.tokens.forEach(token => {
+        token.value = "";
+      });
+      targetInput.value = "";
+      state.focused = null;
+      state.targetFresh = true;
+      state.focusedOp = getOperatorIndexes()[0] ?? 1;
+      solutionsBox.innerHTML = "";
+      render();
+      setStatus("式を空にしました。一番左の符号から入力できます。", "");
+      focusOperator(state.focusedOp);
+    }
+
+    function updateShape() {
+      state.tokens = defaultTokens(state.numberCount);
+      state.focused = null;
+      state.focusedOp = 1;
+      solutionsBox.innerHTML = "";
+      render();
+      focusOperator(state.focusedOp || getOperatorIndexes()[0] || 1);
+    }
+
+    function setNumberCount(count) {
+      state.numberCount = count;
+      countChoices.forEach(button => {
+        button.classList.toggle("active", Number(button.dataset.count) === count);
+      });
+      updateShape();
+    }
+
+    function solveCandidates(limit = 80) {
+      if (targetInput.value.trim() === "") {
+        return null;
+      }
+      const target = Number(targetInput.value);
+      if (Number.isNaN(target)) {
+        return null;
+      }
+
+      const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+      const candidates = [];
+
+      function walk(index, tokens, used) {
+        if (candidates.length >= limit) return;
+        if (index >= tokens.length) {
+          const result = calculate(tokens);
+          if (result !== null && Math.abs(result - target) < 0.0000001) {
+            candidates.push(tokens.map(token => ({ ...token })));
+          }
+          return;
+        }
+
+        const token = tokens[index];
+        if (token.value !== "") {
+          walk(index + 1, tokens, used);
+          return;
+        }
+
+        if (token.type === "num") {
+          for (const digit of digits) {
+            if (used.has(digit)) continue;
+            token.value = digit;
+            used.add(digit);
+            walk(index + 1, tokens, used);
+            used.delete(digit);
+            token.value = "";
+          }
+        } else {
+          walk(index + 1, tokens, used);
+        }
+      }
+
+      const tokens = state.tokens.map(token => ({ ...token }));
+      const alreadyUsed = new Set(tokens.filter(token => token.type === "num" && token.value).map(token => token.value));
+      walk(0, tokens, alreadyUsed);
+      return candidates;
+    }
+
+    function findSolutions() {
+      const candidates = solveCandidates();
+      if (candidates === null) {
+        setStatus("答えの欄に数字を入れてから探してください。", "bad");
+        return;
+      }
+      renderSolutions(candidates);
+    }
+
+    function autoSolveNumbers(shouldFill) {
+      const currentFocus = state.focused;
+      const currentOp = state.focusedOp;
+      if (targetInput.value.trim() === "") {
+        solutionsBox.innerHTML = "";
+        setStatus("符号を入力したら、次に答えを入力してください。答えが入るまで数字欄は自動入力しません。", "");
+        return;
+      }
+      if (shouldFill) {
+        state.tokens.forEach(token => {
+          if (token.type === "num") token.value = "";
+        });
+      }
+      const candidates = solveCandidates();
+      if (candidates === null) return;
+      if (shouldFill && candidates.length > 0) {
+        state.tokens = candidates[0].map(token => ({ ...token }));
+        render();
+        state.focused = currentFocus;
+        state.focusedOp = currentOp;
+      } else if (shouldFill) {
+        render();
+      }
+      renderSolutions(candidates, shouldFill);
+      if (shouldFill && currentFocus === "target") focusTarget(false);
+    }
+
+    function renderSolutions(candidates, autoFilled = false) {
+      solutionsBox.innerHTML = "";
+      if (candidates.length === 0) {
+        setStatus("この符号と答えに合う数字の組み合わせは見つかりませんでした。組み合わせを確認してください。", "bad");
+        return;
+      }
+      setStatus(autoFilled ? "解を自動入力しました。" : "解を見つけました。", "ok");
+      candidates.forEach(tokens => {
+        const button = document.createElement("button");
+        button.className = "solution";
+        button.type = "button";
+        button.textContent = `${displayExpression(tokens)} = ${targetInput.value}`;
+        button.addEventListener("click", () => {
+          state.tokens = tokens.map(token => ({ ...token }));
+          render();
+          checkAnswer();
+        });
+        solutionsBox.appendChild(button);
+      });
+    }
+
+    function initializeBlank() {
+      state.numberCount = 4;
+      state.focusedOp = 1;
+      state.focused = null;
+      state.targetFresh = true;
+      countChoices.forEach(button => {
+        button.classList.toggle("active", Number(button.dataset.count) === 4);
+      });
+      targetInput.value = "";
+      state.tokens = [
+        { type: "num", value: "" },
+        { type: "op", value: "" },
+        { type: "num", value: "" },
+        { type: "op", value: "" },
+        { type: "num", value: "" },
+        { type: "op", value: "" },
+        { type: "num", value: "" }
+      ];
+      solutionsBox.innerHTML = "";
+      render();
+      setStatus("ゲーム画面の符号と答えを入力してください。", "");
+      focusOperator(state.focusedOp || getOperatorIndexes()[0] || 1);
+    }
+
+    document.querySelectorAll("[data-key]").forEach(button => {
+      button.addEventListener("click", () => setFocusedValue(button.dataset.key));
+    });
+
+    document.querySelector("#clearFormulaBtn").addEventListener("click", clearFormula);
+
+    countChoices.forEach(button => {
+      button.addEventListener("click", () => setNumberCount(Number(button.dataset.count)));
+    });
+    targetInput.addEventListener("input", () => {
+      targetInput.value = normalizeAnswer(targetInput.value);
+      render();
+      autoSolveNumbers(true);
+    });
+    window.addEventListener("keydown", event => {
+      if (event.key === "Delete") {
+        event.preventDefault();
+        clearFormula();
+        return;
+      }
+      if (event.target.matches("input")) return;
+      if (/^[0-9]$/.test(event.key)) setFocusedValue(event.key);
+      if (["+", "-", "*", "/", "x", "X"].includes(event.key)) setFocusedValue(event.key);
+      if (event.key === "Enter") checkAnswer();
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        const activeIndex = Number(document.activeElement?.dataset?.index ?? state.focusedOp);
+        const token = state.tokens[activeIndex];
+        if (token && token.type === "op") {
+          token.value = "";
+          render();
+          focusOperator(activeIndex);
+        }
+      }
+    });
+    window.addEventListener("resize", fitFormula);
+
+    initializeBlank();
+  </script>
+</body>
+</html>
